@@ -2,7 +2,11 @@
 
 package com.dragonslotos.lotoseveryday.ui.screens.Preview
 
-import android.content.Context
+import android.os.Bundle
+import android.util.Log
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.core.animateIntOffsetAsState
@@ -24,12 +28,10 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
@@ -42,27 +44,35 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.fragment.app.Fragment
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.ViewModelStore
 import androidx.navigation.NavController
+import androidx.navigation.NavHostController
 import com.dragonslotos.lotoseveryday.DTO.trading_economics.CountryDATA
 import com.dragonslotos.lotoseveryday.R
+import com.dragonslotos.lotoseveryday.ui.Navigation.NavigatorDecorater
 import com.dragonslotos.lotoseveryday.ui.theme.Fonts
 import com.dragonslotos.lotoseveryday.ui.theme.LotosTheme
+import dagger.hilt.EntryPoint
+import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
-class PreivewScreen {
-    private lateinit var ViewModel: PreviewViewModel
+@AndroidEntryPoint
+class PreivewScreen constructor(navController: NavigatorDecorater, ViewModel: PreviewViewModel):Fragment()  {
+    val navController: NavigatorDecorater = navController
+
+
+    private  val ViewModel: PreviewViewModel = ViewModel
 
     //Inner card content
     @Composable
@@ -77,9 +87,8 @@ class PreivewScreen {
                 value = text,
                 onValueChange = {text = it},
                 label = { Text(text = "Имя")},
-                colors = TextFieldDefaults.textFieldColors(focusedLabelColor = LotosTheme.colors.primary,
+                colors = TextFieldDefaults.colors(focusedLabelColor = LotosTheme.colors.primary,
                     focusedIndicatorColor = LotosTheme.colors.primary,
-                    containerColor = LotosTheme.colors.background,
                     errorIndicatorColor = LotosTheme.colors.errorColor,
                     errorLabelColor = LotosTheme.colors.errorColor),
                 isError = isError)
@@ -201,15 +210,11 @@ class PreivewScreen {
         }
     }
     @Composable
-    fun show(navController: NavController, vm: PreviewViewModel = viewModel()){
-        //get context and shared preferences to check user and Viewmodel
-        ViewModel = vm
-        ViewModel.setContext(LocalContext.current)
+    fun show(){
         //collecting states from viewmodel
         val login by ViewModel.login.collectAsState()
         val DATA by ViewModel.countryDATAList.collectAsState()
         val enter by ViewModel.login.collectAsState()
-
 
         //Fon painter
         Fon()
@@ -235,14 +240,14 @@ class PreivewScreen {
             card()
 
         }
+
         // check data for username
         if (enter){
 
             //load data in printscreen
             val countryDATA = CountryDATA(DATA)
-            navController.currentBackStackEntry?.arguments?.apply {
-                putSerializable("Data", countryDATA)
-            }
+            navController.saveSerializable("Data", countryDATA)
+
             navController.navigate("welcome")
         }
     }

@@ -3,30 +3,27 @@ package com.dragonslotos.lotoseveryday.ui.screens.Preview
 import android.content.Context
 import android.content.SharedPreferences
 import android.util.Log
-import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dragonslotos.lotoseveryday.DTO.trading_economics.CountryDataNADTO
-import com.dragonslotos.lotoseveryday.DTO.trading_economics.CountrysTeDTO
 import com.dragonslotos.lotoseveryday.DTO.trading_economics.CoutnryInflationNADTO
-import com.dragonslotos.lotoseveryday.DTO.trading_economics.NewsAPIDTO
-import com.dragonslotos.lotoseveryday.RetroFit.NetworkService
+import com.dragonslotos.lotoseveryday.RetroFit.JSONPlaceHolderApi
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ActivityContext
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 import javax.inject.Inject
-import kotlin.concurrent.thread
-
 
 @HiltViewModel
-class PreviewViewModel : ViewModel() {
+class PreviewViewModel @Inject constructor(@ApplicationContext context: Context, jsonApi: JSONPlaceHolderApi) : ViewModel() {
 
-    private lateinit var context:Context;
-    private lateinit var sharedPreferences: SharedPreferences
+    val jsonApi: JSONPlaceHolderApi = jsonApi
 
+    private var sharedPreferences: SharedPreferences
     //Mutable variables
     val login: MutableStateFlow<Boolean> = MutableStateFlow(true)
     val countryViewSet:MutableStateFlow<Set<String>> = MutableStateFlow(setOf())
@@ -34,11 +31,7 @@ class PreviewViewModel : ViewModel() {
     //Entering Checker
     val enter: MutableStateFlow<Boolean> = MutableStateFlow(false)
 
-
-
-    //set context and check data for user
-    fun setContext(context: Context){
-        this.context = context
+    init {
         //Get shared preferences
         sharedPreferences = context.getSharedPreferences("UserData", Context.MODE_PRIVATE)
         //Get data for username
@@ -65,13 +58,13 @@ class PreviewViewModel : ViewModel() {
         login.value = true
         with(sharedPreferences.edit()){
             putString("UserName", name)
-            apply();
+            apply()
         }
 
     }
 
     private fun loadInflation(country: String, countryDataNADTO: CountryDataNADTO){
-        NetworkService.getInstance().jsonApi.getInflation("+0hIoUYY9jNg64DL6RwcXA==s4cyk2oCJjYs3ZiP", "https://api.api-ninjas.com/v1/inflation?country=" + country)
+        jsonApi.getInflation("+0hIoUYY9jNg64DL6RwcXA==s4cyk2oCJjYs3ZiP", "https://api.api-ninjas.com/v1/inflation?country=" + country)
             .enqueue(
                 object : Callback<List<CoutnryInflationNADTO>> {
                     override fun onResponse(
@@ -93,7 +86,7 @@ class PreviewViewModel : ViewModel() {
 
     }
     fun loadGdp(country: String){
-        NetworkService.getInstance().jsonApi.getCountryData("+0hIoUYY9jNg64DL6RwcXA==s4cyk2oCJjYs3ZiP","https://api.api-ninjas.com/v1/country?name=" + country)
+        jsonApi.getCountryData("+0hIoUYY9jNg64DL6RwcXA==s4cyk2oCJjYs3ZiP","https://api.api-ninjas.com/v1/country?name=" + country)
             .enqueue(
                 object : Callback<List<CountryDataNADTO>> {
                     override fun onFailure(call: Call<List<CountryDataNADTO>>, t: Throwable) {
@@ -116,7 +109,7 @@ class PreviewViewModel : ViewModel() {
             )
     }
     fun loadViewCountrys(){
-        var status = viewModelScope.launch {
+        val status = viewModelScope.launch {
             countryViewSet.value =  sharedPreferences.getStringSet("CountrysView", setOf())!!.toSet()
             countryDATAList.value = listOf()
             for(countryName in countryViewSet.value){

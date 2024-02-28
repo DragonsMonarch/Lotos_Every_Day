@@ -15,16 +15,19 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
+import androidx.navigation.NavHostController
 import com.dragonslotos.lotoseveryday.DTO.trading_economics.CountryDATA
 import com.dragonslotos.lotoseveryday.DTO.trading_economics.CountryDataNADTO
 import com.dragonslotos.lotoseveryday.DTO.trading_economics.CountrysTeDTO
 import com.dragonslotos.lotoseveryday.DTO.trading_economics.CoutnryInflationNADTO
 import com.dragonslotos.lotoseveryday.DTO.trading_economics.GDPTeDTO
 import com.dragonslotos.lotoseveryday.DTO.trading_economics.NewsAPIDTO
-import com.dragonslotos.lotoseveryday.RetroFit.NetworkService
+import com.dragonslotos.lotoseveryday.RetroFit.JSONPlaceHolderApi
+import com.dragonslotos.lotoseveryday.ui.Navigation.NavigatorDecorater
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ActivityContext
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import retrofit2.Call
 import retrofit2.Callback
@@ -34,18 +37,14 @@ import javax.inject.Inject
 
 
 //factory to create viw model
-class WelcomeViewModelFactory(private val navController: NavController) :
-    ViewModelProvider.NewInstanceFactory() {
-    override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        return WelcomeViewModel(navController) as T
-    }
-}
-
 @HiltViewModel
-class WelcomeViewModel @Inject constructor(navController: NavController) : ViewModel() {
-    //get context of application
-    private var context: Context = navController.context
+class WelcomeViewModel @Inject constructor(navController: NavigatorDecorater, @ApplicationContext context: Context, jsonApi: JSONPlaceHolderApi) : ViewModel() {
+
     private var sharedPreferences: SharedPreferences
+
+
+    val jsonApi: JSONPlaceHolderApi = jsonApi
+
 
     //Mutable variables
     val NamingText: MutableStateFlow<String> = MutableStateFlow("")
@@ -55,7 +54,7 @@ class WelcomeViewModel @Inject constructor(navController: NavController) : ViewM
     val newsList: MutableStateFlow<List<NewsAPIDTO.Atricles>>  = MutableStateFlow(listOf())
     lateinit var GDPList: List<GDPTeDTO>;
     var isRefreshing: Boolean by mutableStateOf(false)
-    //set context and check data for user
+
 
     init {
         //Get shared preferences
@@ -63,7 +62,7 @@ class WelcomeViewModel @Inject constructor(navController: NavController) : ViewM
 
 
         //load data from print screen
-        val Data = navController.previousBackStackEntry?.arguments?.customGetSerializable<CountryDATA>("Data")
+        val Data = navController.getSerializeble<CountryDATA>("Data")
 
         //if data null parsing data
         if (Data != null){
@@ -78,21 +77,9 @@ class WelcomeViewModel @Inject constructor(navController: NavController) : ViewM
         loadCountrys()
         loadNews()
     }
-
-    @Suppress("DEPRECATION")
-    inline fun <reified T : Serializable> Bundle.customGetSerializable(key: String): T? {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) getSerializable(key, T::class.java)
-        else getSerializable(key) as? T
-    }
-
-    fun setContext(context: Context){
-        Log.d("Awaken", "2")
-        this.context = context
-
-    }
     fun loadCountrys(){
         viewModelScope.launch {
-            NetworkService.getInstance().jsonApi.countrys.enqueue(
+            jsonApi.countrys.enqueue(
                 object : Callback<List<CountrysTeDTO>> {
                     override fun onFailure(call: Call<List<CountrysTeDTO>>, t: Throwable) {
                         t.stackTrace
@@ -110,7 +97,7 @@ class WelcomeViewModel @Inject constructor(navController: NavController) : ViewM
         }
     }
     private fun loadInflation(country: String, countryDataNADTO: CountryDataNADTO){
-        NetworkService.getInstance().jsonApi.getInflation("+0hIoUYY9jNg64DL6RwcXA==s4cyk2oCJjYs3ZiP", "https://api.api-ninjas.com/v1/inflation?country=" + country)
+        jsonApi.getInflation("+0hIoUYY9jNg64DL6RwcXA==s4cyk2oCJjYs3ZiP", "https://api.api-ninjas.com/v1/inflation?country=" + country)
             .enqueue(
                 object : Callback<List<CoutnryInflationNADTO>>{
                     override fun onResponse(
@@ -132,7 +119,7 @@ class WelcomeViewModel @Inject constructor(navController: NavController) : ViewM
 
     }
     fun loadGdp(country: String){
-        NetworkService.getInstance().jsonApi.getCountryData("+0hIoUYY9jNg64DL6RwcXA==s4cyk2oCJjYs3ZiP","https://api.api-ninjas.com/v1/country?name=" + country)
+        jsonApi.getCountryData("+0hIoUYY9jNg64DL6RwcXA==s4cyk2oCJjYs3ZiP","https://api.api-ninjas.com/v1/country?name=" + country)
             .enqueue(
                 object : Callback<List<CountryDataNADTO>>{
                     override fun onFailure(call: Call<List<CountryDataNADTO>>, t: Throwable) {
@@ -198,7 +185,7 @@ class WelcomeViewModel @Inject constructor(navController: NavController) : ViewM
     }
     fun loadNews(){
         viewModelScope.launch {
-            NetworkService.getInstance().jsonApi.countryNews.enqueue(
+            jsonApi.countryNews.enqueue(
                 object : Callback<NewsAPIDTO>{
                     override fun onResponse(
                         call: Call<NewsAPIDTO>,
